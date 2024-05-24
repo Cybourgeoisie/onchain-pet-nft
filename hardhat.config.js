@@ -28,6 +28,10 @@ module.exports = {
 			url: process.env.ETHEREUM_SEPOLIA_HTTPS_RPC,
 			accounts: [`0x${process.env.SEPOLIA_PRIVATE_KEY}`],
 		},
+		base: {
+			url: process.env.BASE_HTTPS_RPC,
+			accounts: [`0x${process.env.BASE_PRIVATE_KEY}`],
+		},
 		mainnet: {
 			url: process.env.ETHEREUM_HTTPS_RPC,
 			accounts: [`0x${process.env.ETHEREUM_PRIVATE_KEY}`],

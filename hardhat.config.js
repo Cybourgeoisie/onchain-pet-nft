@@ -5,6 +5,7 @@
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@nomicfoundation/hardhat-network-helpers");
 require("@nomicfoundation/hardhat-ethers");
+require("@nomiclabs/hardhat-web3");
 require("hardhat-gas-reporter");
 require("dotenv").config();
 

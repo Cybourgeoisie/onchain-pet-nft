@@ -11,18 +11,18 @@
 		"deploy-base": "hardhat run ./scripts/deploy.js --network base",
 		"test": "hardhat test --network hardhat"
 	},
-	"author": "",
+	"author": "Cybourgeoisie",
 	"license": "ISC",
 	"devDependencies": {
-		"@nomicfoundation/hardhat-chai-matchers": "^2.0.2",
-		"@nomicfoundation/hardhat-ethers": "^3.0.5",
+		"@nomicfoundation/hardhat-chai-matchers": "^2.0.6",
+		"@nomicfoundation/hardhat-ethers": "^3.0.6",
 		"@nomicfoundation/hardhat-network-helpers": "^1.0.10",
-		"@nomicfoundation/hardhat-toolbox": "^4.0.0",
-		"@openzeppelin/contracts": "^5.0.1",
-		"chai": "^4.3.10",
-		"dotenv": "^16.3.1",
-		"hardhat": "^2.19.2",
-		"hardhat-gas-reporter": "^1.0.9",
-		"prettier": "3.1.0"
+		"@nomicfoundation/hardhat-toolbox": "^5.0.0",
+		"@openzeppelin/contracts": "^5.0.2",
+		"chai": "^5.1.1",
+		"dotenv": "^16.4.5",
+		"hardhat": "^2.22.4",
+		"hardhat-gas-reporter": "^2.2.0",
+		"prettier": "^3.2.5"
 	}
 }

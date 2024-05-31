@@ -11,7 +11,7 @@ require("dotenv").config();
 
 module.exports = {
 	solidity: {
-		version: "0.8.20",
+		version: "0.8.26",
 		settings: {
 			optimizer: {
 				enabled: true,
@@ -32,10 +32,6 @@ module.exports = {
 			url: process.env.BASE_HTTPS_RPC,
 			accounts: [`0x${process.env.BASE_PRIVATE_KEY}`],
 		},
-		mainnet: {
-			url: process.env.ETHEREUM_HTTPS_RPC,
-			accounts: [`0x${process.env.ETHEREUM_PRIVATE_KEY}`],
-		},
 	},
 	gasReporter: {
 		enabled: true,
@@ -43,7 +39,7 @@ module.exports = {
 		gasPrice: 10,
 	},
 	etherscan: {
-		apiKey: process.env.ETHERSCAN_API_KEY_ETHEREUM,
+		apiKey: process.env.BASESCAN_API_KEY_ETHEREUM,
 	},
 	sourcify: {
 		enabled: true,

@@ -15,7 +15,7 @@ async function main() {
 	console.log("Account balance:", (await deployer.provider.getBalance(deployer.address)).toString());
 
 	// Get the contracts to deploy
-	const contract = await ethers.getContractFactory("TestNft");
+	const contract = await ethers.getContractFactory("DigitalPetNft");
 
 	// Deploy contract
 	const _contract = await contract.deploy();

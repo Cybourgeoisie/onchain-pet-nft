@@ -1,11 +1,11 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
-contract TestNft is ERC721, Ownable {
+contract DigitalPetNft is ERC721, Ownable {
     using Strings for uint256;
 
     constructor(address initialOwner) ERC721("test nft", "testnft") Ownable(initialOwner) { }

@@ -2,6 +2,10 @@ const { ethers } = require("hardhat");
 const { expect } = require("chai");
 const fs = require("fs");
 
+const {
+	expectRevert, // Assertions for transactions that should fail
+} = require("@openzeppelin/test-helpers");
+
 const merkleMaker = require(__dirname + "/../scripts/merkleMaker.js");
 
 const MINT_PRICE = 0.0042;
@@ -84,5 +88,33 @@ describe('"Digital Pet NFT" Tests', function () {
 			let metadata = await nftContract.tokenURI(i);
 			console.log(metadata);
 		}
+	});
+
+	// Get all pets for token 1
+	it("Get all pets for token 1", async () => {
+		let pets = await nftContract.getAllPets(1);
+		expect(pets.length).to.equal(1);
+	});
+
+	// Spawn a new pet for token 1
+	it("Spawn a new pet for token 1", async () => {
+		await nftContract.connect(accts[0]).spawnNewPet(1);
+		let pets = await nftContract.getAllPets(1);
+		expect(pets.length).to.equal(2);
+		//console.log(pets);
+	});
+
+	// Should NOT let non-owner of NFT to spawn a new pet
+	it("Should NOT let non-owner of NFT to spawn a new pet", async () => {
+		await expectRevert(nftContract.connect(owner).spawnNewPet(1), "Only owner can spawn new pet");
+		await expectRevert(nftContract.connect(accts[1]).spawnNewPet(1), "Only owner can spawn new pet");
+	});
+
+	// Get the current pet for token 1
+	it("Get the current pet for token 1", async () => {
+		let pet = await nftContract.getActivePet(1);
+		expect(pet).to.not.equal(null);
+		expect(pet[0]).to.equal(6n);
+		//console.log(pet);
 	});
 });

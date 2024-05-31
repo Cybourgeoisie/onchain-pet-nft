@@ -64,8 +64,12 @@ contract MetadataRenderer is Ownable {
 			abi.encodePacked(
 				"Token ID: ",
 				tokenId.toString(),
+				" | Active Pet ID: ",
+				_digitalPet.petId.toString(),
 				" | DNA: ",
-				_digitalPet.dna.toString()
+				_digitalPet.dna.toString(),
+				" | Birth Time: ",
+				_digitalPet.birthTime.toString()
 			)
 		);
 	}

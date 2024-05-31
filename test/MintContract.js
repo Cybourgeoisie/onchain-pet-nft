@@ -11,15 +11,15 @@ const {
 const MINT_PRICE = 0.0042;
 
 const saleAllowlist = {
-	"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266": [10000, false],
-	"0x70997970C51812dc3A010C7d01b50e0d17dc79C8": [10000, false],
-	"0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC": [10000, false],
-	"0x90F79bf6EB2c4f870365E785982E1f101E93b906": [2, false],
-	"0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65": [0, true],
-	"0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc": [0, true],
-	"0x976EA74026E726554dB657fA54763abd0C3a0aa9": [0, true],
-	"0x14dC79964da2C08b23698B3D3cc7Ca32193d9955": [5, true],
-	"0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f": [5, true],
+	"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266": [10000],
+	"0x70997970C51812dc3A010C7d01b50e0d17dc79C8": [10000],
+	"0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC": [10000],
+	"0x90F79bf6EB2c4f870365E785982E1f101E93b906": [2],
+	"0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65": [0],
+	"0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc": [0],
+	"0x976EA74026E726554dB657fA54763abd0C3a0aa9": [0],
+	"0x14dC79964da2C08b23698B3D3cc7Ca32193d9955": [5],
+	"0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f": [5],
 };
 
 let saleMerkleData = merkleMaker.generateMerkleData(saleAllowlist);
@@ -39,8 +39,7 @@ describe("NFT Mint Tests", async () => {
 	 * Helper functions
 	 **/
 	function reviewMints(receipt, to) {
-		let eventPresent = false,
-			tokenIds = [];
+		let eventPresent = false;
 		for (const log of receipt.logs) {
 			let event;
 			try {
@@ -53,9 +52,7 @@ describe("NFT Mint Tests", async () => {
 				// Make sure that the transfer event has everything expected of it - from, to, id, value
 				expect(event.args.from).to.equal("0x0000000000000000000000000000000000000000");
 				expect(event.args.to).to.equal(to.address);
-
-				// Keep track of cards
-				tokenIds.push(event.args.tokenId.toNumber());
+				expect(event.args.tokenId).to.be.greaterThan(0);
 
 				// Make sure an event fired
 				eventPresent = true;
@@ -64,8 +61,6 @@ describe("NFT Mint Tests", async () => {
 
 		// Verify that the event fired
 		expect(eventPresent).to.equal(true);
-
-		return tokenIds;
 	}
 
 	before(async () => {
@@ -90,8 +85,6 @@ describe("NFT Mint Tests", async () => {
 
 		mintContract = await MintContract.deploy(nftContract.target, saleMerkleRoot);
 		await mintContract.waitForDeployment();
-
-		nftContract.setMintContractAddress(mintContract.target);
 	});
 
 	it("Should allow owner to set mint contract address", async () => {
@@ -116,6 +109,23 @@ describe("NFT Mint Tests", async () => {
 	it("Should NOT allow non-owners to start sale", async () => {
 		await expectRevert(mintContract.connect(accts[0]).setSaleStarted(true), `OwnableUnauthorizedAccount("${accts[0].address}")`);
 		await expectRevert(mintContract.connect(accts[1]).setSaleStarted(true), `OwnableUnauthorizedAccount("${accts[1].address}")`);
+	});
+
+	it("Should NOT allow users to purchase before sale starts", async () => {
+		let user1MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[0].address);
+		await expectRevert(
+			mintContract.connect(accts[0]).purchase(user1MerkleData.proof, user1MerkleData.allowedAmount, 3, {
+				value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)),
+			}),
+			"Sale has not started",
+		);
+
+		await expectRevert(
+			mintContract.connect(accts[9]).purchase([], 0, 3, {
+				value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)),
+			}),
+			"Sale has not started",
+		);
 	});
 
 	it("Should allow owner to start the sale", async () => {
@@ -149,21 +159,30 @@ describe("NFT Mint Tests", async () => {
 		expect(false).to.equal(true);
 	});
 
-	it("Should allow EOA to purchase NFT", async () => {
+	it("Should allow EOA on Allowlist to purchase NFT", async () => {
 		let user1MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[0].address);
 
 		let tx = await mintContract.connect(accts[0]).purchase(user1MerkleData.proof, user1MerkleData.allowedAmount, 3, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 100) / 100)),
+			value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)),
 		});
 
 		let receipt = await tx.wait();
-		let mints = reviewMints(receipt, accts[0]);
+		reviewMints(receipt, accts[0]);
 
 		let res = await nftContract.balanceOf(accts[0].address);
 		expect(res).to.equal(3);
 
 		res = await nftContract.totalSupply();
-		expect(res).to.equal(4);
+		expect(res).to.equal(3);
+	});
+
+	it("Should NOT allow random EOA to purchase NFT yet", async () => {
+		await expectRevert(
+			mintContract.connect(accts[11]).purchase([], 100, 3, {
+				value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)),
+			}),
+			"Proof does not match data",
+		);
 	});
 
 	it("Should allow owner to PAUSE the sale", async () => {
@@ -182,10 +201,10 @@ describe("NFT Mint Tests", async () => {
 		let user2MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[1].address);
 
 		await expectRevert(
-			mintContract.connect(accts[1]).purchase(user2MerkleData.proof, user2MerkleData.allowedAmount, 10000, {
-				value: ethers.parseEther(String(Math.round(MINT_PRICE * 10000 * 100) / 100)),
+			mintContract.connect(accts[1]).purchase(user2MerkleData.proof, user2MerkleData.allowedAmount, 11000, {
+				value: ethers.parseEther(String(Math.round(MINT_PRICE * 11000 * 10000) / 10000)),
 			}),
-			"Mint request exceeds purchase supply",
+			"Mint request exceeds supply",
 		);
 	});
 
@@ -194,7 +213,7 @@ describe("NFT Mint Tests", async () => {
 
 		await expectRevert(
 			mintContract.connect(accts[2]).purchase(user3MerkleData.proof, user3MerkleData.allowedAmount, 3, {
-				value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 100) / 100)),
+				value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)),
 			}),
 			"Can not exceed permitted amount",
 		);
@@ -205,7 +224,7 @@ describe("NFT Mint Tests", async () => {
 
 		await expectRevert(
 			mintContract.connect(accts[3]).purchase(user2MerkleData.proof, user2MerkleData.allowedAmount, 3, {
-				value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 100) / 100)),
+				value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)),
 			}),
 			"Proof does not match data",
 		);
@@ -216,7 +235,7 @@ describe("NFT Mint Tests", async () => {
 
 		await expectRevert(
 			mintContract.connect(accts[2]).purchase(user2MerkleData.proof, user2MerkleData.allowedAmount, 3, {
-				value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 100) / 100)),
+				value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)),
 			}),
 			"Proof does not match data",
 		);
@@ -227,15 +246,15 @@ describe("NFT Mint Tests", async () => {
 	});
 
 	it("Allow withdraw", async function () {
-		let contractBalanceOld = await provider.getBalance(mintContract.target);
-		expect(contractBalanceOld).to.equal(ethers.parseEther(String(Math.round(MINT_PRICE * 6 * 100) / 100)));
+		let contractBalanceOld = await ethers.provider.getBalance(mintContract.target);
+		expect(contractBalanceOld).to.equal(ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)));
 
-		let balanceOld = await owner.getBalance("latest");
+		let balanceOld = await ethers.provider.getBalance(owner.address);
 		await mintContract.withdraw();
-		let balanceNew = await owner.getBalance("latest");
+		let balanceNew = await ethers.provider.getBalance(owner.address);
 		expect(balanceOld).to.be.lt(balanceNew);
 
-		let contractBalanceNew = await provider.getBalance(mintContract.target);
+		let contractBalanceNew = await ethers.provider.getBalance(mintContract.target);
 		expect(contractBalanceNew).to.equal(0);
 	});
 
@@ -267,138 +286,32 @@ describe("NFT Mint Tests", async () => {
 		expect(await mintContract.isOpenSale()).to.equal(false);
 	});
 
-	it("Should NOT allow someone who has both mints and waitlist spots to be able to mint their waitlist spot early", async () => {
+	it("Should NOT allow someone to mint more tokens after allocation", async () => {
 		let user7MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[6].address);
 
 		await expectRevert(mintContract.connect(accts[6]).purchase(user7MerkleData.proof, user7MerkleData.allowedAmount, 6), "Can not exceed permitted amount");
 	});
 
-	it("Should allow someone who has both mints and waitlist spots to only mint their current spots... and then later to mint their waitlist spot.", async () => {
+	it("Should allow someone to mint.", async () => {
 		let user8MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[7].address);
 
 		await expectRevert(mintContract.connect(accts[7]).purchase(user8MerkleData.proof, user8MerkleData.allowedAmount, 6), "Can not exceed permitted amount");
 
 		await mintContract.connect(accts[7]).purchase(user8MerkleData.proof, user8MerkleData.allowedAmount, 5, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 5 * 100) / 100)),
+			value: ethers.parseEther(String(Math.round(MINT_PRICE * 5 * 10000) / 10000)),
 		});
 
 		let res = await nftContract.balanceOf(accts[7].address);
 		expect(res).to.equal(5);
 
 		res = await nftContract.totalSupply();
-		expect(res).to.equal(15);
+		expect(res).to.equal(8);
 	});
 
-	it("Should NOT allow minting more than one if not in the allowlist - purchase, raffle spot but no allowlist position", async () => {
+	it("Should NOT allow minting more than permitted amount if not in the allowlist", async () => {
 		let user4MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[3].address);
 
 		await expectRevert(mintContract.connect(accts[3]).purchase(user4MerkleData.proof, user4MerkleData.allowedAmount, 2), "Can not exceed permitted amount");
-	});
-
-	it("Should allow wait list users to mint exactly one (more)", async () => {
-		let user4MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[3].address);
-
-		await mintContract.connect(accts[3]).purchase(user4MerkleData.proof, user4MerkleData.allowedAmount, 1, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 1 * 100) / 100)),
-		});
-
-		let res = await nftContract.balanceOf(accts[3].address);
-		expect(res).to.equal(1);
-
-		res = await nftContract.totalSupply();
-		expect(res).to.equal(16);
-
-		// Run again
-
-		let user5MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[4].address);
-
-		await mintContract.connect(accts[4]).purchase(user5MerkleData.proof, user5MerkleData.allowedAmount, 1, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 1 * 100) / 100)),
-		});
-
-		res = await nftContract.balanceOf(accts[4].address);
-		expect(res).to.equal(1);
-
-		res = await nftContract.totalSupply();
-		expect(res).to.equal(17);
-
-		// Run again
-
-		let user7MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[6].address);
-
-		await mintContract.connect(accts[6]).purchase(user7MerkleData.proof, user7MerkleData.allowedAmount, 6, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 6 * 100) / 100)),
-		});
-
-		res = await nftContract.balanceOf(accts[6].address);
-		expect(res).to.equal(6);
-
-		res = await nftContract.totalSupply();
-		expect(res).to.equal(23);
-
-		// Run again
-
-		let user8MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[7].address);
-
-		await expectRevert(mintContract.connect(accts[7]).purchase(user8MerkleData.proof, user8MerkleData.allowedAmount, 2), "Can not exceed permitted amount");
-
-		await mintContract.connect(accts[7]).purchase(user8MerkleData.proof, user8MerkleData.allowedAmount, 1, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 1 * 100) / 100)),
-		});
-
-		res = await nftContract.balanceOf(accts[7].address);
-		expect(res).to.equal(6);
-
-		res = await nftContract.totalSupply();
-		expect(res).to.equal(24);
-	});
-
-	it("Should not allow minting a second raffle wait list spot", async () => {
-		let user4MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[3].address);
-
-		await expectRevert(mintContract.connect(accts[3]).purchase(user4MerkleData.proof, user4MerkleData.allowedAmount, 1), "Can not exceed permitted amount");
-
-		// Run again
-
-		let user5MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[4].address);
-
-		await expectRevert(mintContract.connect(accts[4]).purchase(user5MerkleData.proof, user5MerkleData.allowedAmount, 1), "Can not exceed permitted amount");
-
-		// Run again
-
-		let user7MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[6].address);
-
-		await expectRevert(mintContract.connect(accts[6]).purchase(user7MerkleData.proof, user7MerkleData.allowedAmount, 1), "Can not exceed permitted amount");
-	});
-
-	it("Should not allow someone who already minted their allotments to mint again even after wait list is enabled", async () => {
-		let user3MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[2].address);
-
-		await expectRevert(mintContract.connect(accts[2]).purchase(user3MerkleData.proof, user3MerkleData.allowedAmount, 3), "Can not exceed permitted amount");
-
-		// Mint
-		await mintContract.connect(accts[2]).purchase(user3MerkleData.proof, user3MerkleData.allowedAmount, 1, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 1 * 100) / 100)),
-		});
-
-		let res = await nftContract.balanceOf(accts[2].address);
-		expect(res).to.equal(1);
-
-		res = await nftContract.totalSupply();
-		expect(res).to.equal(25);
-
-		await mintContract.connect(accts[2]).purchase(user3MerkleData.proof, user3MerkleData.allowedAmount, 1, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 1 * 100) / 100)),
-		});
-
-		res = await nftContract.balanceOf(accts[2].address);
-		expect(res).to.equal(2);
-
-		res = await nftContract.totalSupply();
-		expect(res).to.equal(26);
-
-		// Now just try one more
-		await expectRevert(mintContract.connect(accts[2]).purchase(user3MerkleData.proof, user3MerkleData.allowedAmount, 1), "Can not exceed permitted amount");
 	});
 
 	it("Should allow owner to enable open sale for all allowlisted addresses", async () => {
@@ -411,69 +324,79 @@ describe("NFT Mint Tests", async () => {
 		let user4MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[3].address);
 
 		await mintContract.connect(accts[3]).purchase(user4MerkleData.proof, user4MerkleData.allowedAmount, 3, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 100) / 100)),
+			value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)),
 		});
 
 		let res = await nftContract.balanceOf(accts[3].address);
-		expect(res).to.equal(4);
+		expect(res).to.equal(3);
 
 		res = await nftContract.totalSupply();
-		expect(res).to.equal(29);
+		expect(res).to.equal(11);
 
 		// Run again
 
 		let user5MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[4].address);
 
 		await mintContract.connect(accts[4]).purchase(user5MerkleData.proof, user5MerkleData.allowedAmount, 3, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 100) / 100)),
+			value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)),
 		});
 
 		res = await nftContract.balanceOf(accts[4].address);
-		expect(res).to.equal(4);
+		expect(res).to.equal(3);
 
 		res = await nftContract.totalSupply();
-		expect(res).to.equal(32);
-
-		// Run again, this time for a waitlist person who didn't buy during waitlist
+		expect(res).to.equal(14);
 
 		let user6MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[5].address);
 
 		await mintContract.connect(accts[5]).purchase(user6MerkleData.proof, user6MerkleData.allowedAmount, 3, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 100) / 100)),
+			value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)),
 		});
 
 		res = await nftContract.balanceOf(accts[5].address);
 		expect(res).to.equal(3);
 
 		res = await nftContract.totalSupply();
-		expect(res).to.equal(35);
+		expect(res).to.equal(17);
 
 		// Run again
 
 		let user3MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[2].address);
 
 		await mintContract.connect(accts[2]).purchase(user3MerkleData.proof, user3MerkleData.allowedAmount, 3, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 100) / 100)),
+			value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)),
 		});
 
 		res = await nftContract.balanceOf(accts[2].address);
-		expect(res).to.equal(5);
+		expect(res).to.equal(3);
 
 		res = await nftContract.totalSupply();
-		expect(res).to.equal(38);
+		expect(res).to.equal(20);
 
 		// Run again
 
 		let user7MerkleData = merkleMaker.getMerkleProof(saleMerkleData, accts[6].address);
 
-		await mintContract.connect(accts[6]).purchase(user7MerkleData.proof, user7MerkleData.allowedAmount, 3, {
-			value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 100) / 100)),
+		await mintContract.connect(accts[6]).purchase(user7MerkleData.proof, user7MerkleData.allowedAmount, 9, {
+			value: ethers.parseEther(String(Math.round(MINT_PRICE * 9 * 10000) / 10000)),
 		});
 
 		res = await nftContract.balanceOf(accts[6].address);
 		expect(res).to.equal(9);
 
 		res = await nftContract.totalSupply();
-		expect(res).to.equal(41);
+		expect(res).to.equal(29);
+	});
+
+	it("Should allow random EOA to purchase NFT now", async () => {
+		await mintContract.connect(accts[11]).purchase([], 0, 3, {
+			value: ethers.parseEther(String(Math.round(MINT_PRICE * 3 * 10000) / 10000)),
+		});
+
+		let res = await nftContract.balanceOf(accts[11].address);
+		expect(res).to.equal(3);
+
+		res = await nftContract.totalSupply();
+		expect(res).to.equal(32);
 	});
 });

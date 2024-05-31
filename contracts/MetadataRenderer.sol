@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./ContractDataStorage.sol";
+import "./DigitalPet.sol";
 
 contract MetadataRenderer is Ownable {
 	using Strings for uint256;
@@ -20,14 +21,21 @@ contract MetadataRenderer is Ownable {
 		contractDataStorage = ContractDataStorage(_ContractDataStorageAddress);
 	}
 
-	function generateTokenURI(uint256 tokenId) public pure returns (string memory) {
+	function generateTokenURI(
+		uint256 tokenId,
+		DigitalPet memory _digitalPet
+	)
+		public
+		pure
+		returns (string memory)
+	{
 		return string(
 			abi.encodePacked(
 				abi.encodePacked(
 					bytes('data:application/json;utf8,{"name":"'),
 					getName(tokenId),
 					bytes('","description":"'),
-					getDescription(tokenId),
+					getDescription(tokenId, _digitalPet),
 					bytes('","external_url":"'),
 					getExternalUrl(tokenId),
 					bytes('","animation_url":"'),
@@ -35,9 +43,7 @@ contract MetadataRenderer is Ownable {
 				),
 				abi.encodePacked(
 					bytes('","attributes":['),
-					getTalentAttributes(tokenId),
-					getStatAttributes(tokenId),
-					getLayerAttributes(tokenId),
+					getAttributes(tokenId),
 					bytes(']}')
 				)
 			)
@@ -45,27 +51,42 @@ contract MetadataRenderer is Ownable {
 	}
 
 	function getName(uint256 tokenId) public pure returns (string memory) {
-		return tokenId.toString();
+		return string(
+			abi.encodePacked(
+				"Token #",
+				tokenId.toString()
+			)
+		);
 	}
 
-	function getDescription(uint256 tokenId) public pure returns (string memory) {
-		return tokenId.toString();
+	function getDescription(uint256 tokenId, DigitalPet memory _digitalPet) public pure returns (string memory) {
+		return string(
+			abi.encodePacked(
+				"Token ID: ",
+				tokenId.toString(),
+				" | DNA: ",
+				_digitalPet.dna.toString()
+			)
+		);
 	}
 
 	function getExternalUrl(uint256 tokenId) public pure returns (string memory) {
-		return tokenId.toString();
+		return string(
+			abi.encodePacked(
+				"https://example.com/token/",
+				tokenId.toString()
+			)
+		);
 	}
 
-	function getTalentAttributes(uint256 tokenId) public pure returns (string memory) {
-		return tokenId.toString();
-	}
-
-	function getStatAttributes(uint256 tokenId) public pure returns (string memory) {
-		return tokenId.toString();
-	}
-
-	function getLayerAttributes(uint256 tokenId) public pure returns (string memory) {
-		return tokenId.toString();
+	function getAttributes(uint256 tokenId) public pure returns (string memory) {
+		return string(
+			abi.encodePacked(
+				"{\"trait_type\":\"tokenId\",\"value\":\"",
+				tokenId.toString(),
+				bytes("\"}")
+			)
+		);
 	}
 
 	function renderHtml(uint256 tokenId) public pure returns (string memory) {

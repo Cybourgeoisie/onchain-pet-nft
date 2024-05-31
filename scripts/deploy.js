@@ -15,12 +15,25 @@ async function main() {
 	console.log("Account balance:", (await deployer.provider.getBalance(deployer.address)).toString());
 
 	// Get the contracts to deploy
-	const contract = await ethers.getContractFactory("DigitalPetNft");
+	const cdsContract = await ethers.getContractFactory("ContractDataStorage");
+	const mrContract = await ethers.getContractFactory("MetadataRenderer");
+	const nftContract = await ethers.getContractFactory("DigitalPetNft");
 
 	// Deploy contract
-	const _contract = await contract.deploy();
-	await _contract.waitForDeployment();
-	console.log("contract deployed to:", await _contract.getAddress());
+	const _cdsContract = await cdsContract.deploy();
+	await _cdsContract.waitForDeployment();
+	const cdsAddress = await _cdsContract.getAddress();
+	console.log("Contract Data Storage deployed to:", cdsAddress);
+
+	const _mrContract = await mrContract.deploy(cdsAddress);
+	await _mrContract.waitForDeployment();
+	const mrAddress = await _mrContract.getAddress();
+	console.log("Metadata Renderer deployed to:", mrAddress);
+
+	const _nftContract = await nftContract.deploy(mrAddress);
+	await _nftContract.waitForDeployment();
+	const nftAddress = await _nftContract.getAddress();
+	console.log("Digital Pet NFT deployed to:", nftAddress);
 }
 
 main()

@@ -2,7 +2,6 @@
  * @type import('hardhat/config').HardhatUserConfig
  */
 
-//require("hardhat");
 require("@nomicfoundation/hardhat-chai-matchers");
 require("@nomicfoundation/hardhat-network-helpers");
 require("@nomicfoundation/hardhat-ethers");
@@ -34,9 +33,13 @@ module.exports = {
 		},
 	},
 	gasReporter: {
-		enabled: true,
 		currency: "USD",
-		gasPrice: 10,
+		gasPrice: 0.007,
+		coinmarketcap: process.env.COINMARKETCAP_API_KEY,
+		L1Etherscan: process.env.ETHERSCAN_API_KEY_ETHEREUM,
+		L2: "base",
+		L2Etherscan: process.env.BASESCAN_API_KEY_ETHEREUM,
+		currencyDisplayPrecision: 4,
 	},
 	etherscan: {
 		apiKey: process.env.BASESCAN_API_KEY_ETHEREUM,

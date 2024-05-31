@@ -5,8 +5,10 @@ struct DigitalPet {
 	uint256 birthTime;
 	uint256 lastMealTime;
 	uint256 lastPlayTime;
-	uint256 lastSleepTime;
-	uint256 lastExerciseTime;
+	uint256 feedings;
+	uint256 treatsSinceLastMeal;
+	uint256 playtimes;
+	bool autofeeder;
 }
 
 // NFT Structure

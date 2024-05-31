@@ -12,11 +12,12 @@ contract DigitalPetNft is ERC721, Ownable {
 
 	// Contracts
 	MetadataRenderer public metadataRenderer;
+	address public nftMintContract;
 
 	// Constants
-	string private TOKEN_NAME = "Digital Pet";
-	string private TOKEN_SYMBOL = "DPET";
-	uint256 private MAX_TOKENS = 5555;
+	string public TOKEN_NAME = "Digital Pet";
+	string public TOKEN_SYMBOL = "DPET";
+	uint256 public MAX_TOKENS = 5555;
 
 	// Variables
 	uint256 private totalMinted = 0;
@@ -25,46 +26,41 @@ contract DigitalPetNft is ERC721, Ownable {
 		setMetadataRendererAddress(_MetadataRendererAddress);
 	}
 
+	function totalSupply() public view returns (uint256) {
+		return totalMinted;
+	}
+
 	/**
 	 * Metadata functionality
 	 **/
 
 	function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
 		_requireOwned(tokenId);
-
-		return string(
-			abi.encodePacked(
-				bytes('data:application/json;utf8,{"name":"Test NFT #'),
-				tokenId.toString(),
-				bytes('","description":"Test description for test NFT.",'),
-				bytes('"animation_url":"data:text/html;charset=utf-8,<html><body><div id=\\\"counter\\\">0</div><script>setInterval(() => {const counter = document.getElementById(\'counter\'); counter.innerHTML = parseInt(counter.innerHTML, 10) + 1;}, 1000);</script></body></html>"}')
-			)
-		);
+		return metadataRenderer.generateTokenURI(tokenId);
 	}
 
 
 	/**
 	 * Minting functionality
 	 **/
-	function totalSupply() public view returns (uint256) {
-		return totalMinted;
-	}
-
-	function mint(address to, uint256 count) external {
-		require(totalMinted < MAX_TOKENS, "Max tokens minted");
+	function mintFromMintContract(address to, uint256 count) external {
+		require(msg.sender == nftMintContract, "Only mint contract can mint");
+		require(count > 0, "Count must be greater than 0");
 		require(totalMinted + count <= MAX_TOKENS, "Max tokens minted");
 
 		for (uint256 i = 0; i < count; i++) {
 			totalMinted++;
 			_mint(to, totalMinted);
 		}
-		//block.prevrandao
 	}
-
 
 	/**
 	 * Owner-only functions
 	 **/
+	function setMintContractAddress(address _MintContract) public onlyOwner {
+		nftMintContract = _MintContract;
+	}
+
 	function setMetadataRendererAddress(address _MetadataRendererAddress) public onlyOwner {
 		metadataRenderer = MetadataRenderer(_MetadataRendererAddress);
 	}

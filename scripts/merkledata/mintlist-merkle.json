@@ -1,0 +1,14 @@
+{
+    "0x56d76411919Ab8F86D0972b24a9986943193b306": {
+        "allowedAmount": 3,
+        "proof": [
+            "0x656a032c340819a7fde4341ac9d04085ca35fbca3184d44aa6d188bac4b6ae89"
+        ]
+    },
+    "0x9eE5E3Ff06425CF972E77c195F70Ecb18aC23d7f": {
+        "allowedAmount": 7,
+        "proof": [
+            "0xe01d5db881ef7de55a2255cb0b32c07a7a5409bea8fc0281cf69751cf7216fe8"
+        ]
+    }
+}

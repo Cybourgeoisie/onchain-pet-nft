@@ -5,19 +5,23 @@
 // Runtime Environment's members available in the global scope.
 require("hardhat");
 const { ethers } = require("hardhat");
+const fs = require("fs");
 
 async function main() {
 	// Check the address of the sender
 	const [deployer] = await ethers.getSigners();
 
 	console.log("Deploying contracts with the account:", deployer.address);
-
 	console.log("Account balance:", (await deployer.provider.getBalance(deployer.address)).toString());
+
+	// Get the sale merkle root
+	const saleMerkleRoot = fs.readFileSync(__dirname + "/merkledata/sale-merkleroot.txt", "utf8").trim();
 
 	// Get the contracts to deploy
 	const cdsContract = await ethers.getContractFactory("ContractDataStorage");
 	const mrContract = await ethers.getContractFactory("MetadataRenderer");
 	const nftContract = await ethers.getContractFactory("DigitalPetNft");
+	const mintContract = await ethers.getContractFactory("MintContract");
 
 	// Deploy contract
 	const _cdsContract = await cdsContract.deploy();
@@ -34,6 +38,14 @@ async function main() {
 	await _nftContract.waitForDeployment();
 	const nftAddress = await _nftContract.getAddress();
 	console.log("Digital Pet NFT deployed to:", nftAddress);
+
+	const _mintContract = await mintContract.deploy(nftAddress, saleMerkleRoot);
+	await _mintContract.waitForDeployment();
+	const mintAddress = await _mintContract.getAddress();
+	console.log("Mint Contract deployed to:", mintAddress);
+
+	// Set the mint contract address
+	await _nftContract.setMintContractAddress(mintAddress);
 }
 
 main()
